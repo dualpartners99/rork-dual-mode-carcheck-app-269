@@ -191,8 +191,8 @@ class LoginWebSession: NSObject {
     """
 
     private func fillFieldJS(strategies: String, value: String) -> String {
-        let escaped = value.replacingOccurrences(of: "'", with: "\\'")
-            .replacingOccurrences(of: "\\", with: "\\\\")
+        let escaped = value.replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "'", with: "\\'")
         return """
         (function() {
             \(findFieldJS)

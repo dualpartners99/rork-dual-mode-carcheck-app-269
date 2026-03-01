@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 nonisolated enum CredentialStatus: String, Sendable, Codable, CaseIterable {
     case untested = "Untested"
