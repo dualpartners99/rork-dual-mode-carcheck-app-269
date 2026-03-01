@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 nonisolated enum CardBrand: String, Sendable, Codable {
     case visa = "Visa"
