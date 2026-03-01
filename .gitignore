@@ -33,6 +33,9 @@ Package.resolved
 .env
 rork-eslint.config.js
 
+# Temporary files
+tmp/
+
 core
 node_modules
 .expo
