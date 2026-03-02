@@ -156,11 +156,27 @@ class LoginAutomationEngine {
         let maxSubmitCycles = 4
         var finalOutcome: LoginOutcome = .unsure
         var lastEvaluation: EvaluationResult?
+        var successfulButtonPresses = 0
 
         for cycle in 1...maxSubmitCycles {
             advanceTo(.submitting, attempt: attempt, message: "Submit cycle \(cycle)/\(maxSubmitCycles) — clicking login button")
 
             if cycle > 1 {
+                // Wait for the login button to return to its ready state before
+                // re-filling and clicking again.  If it stays in the loading/
+                // pressed appearance for longer than 8 seconds the server has
+                // hung — requeue the credential to the bottom of the queue.
+                attempt.logs.append(PPSRLogEntry(message: "Cycle \(cycle): waiting for login button to be ready...", level: .info))
+                let buttonReady = await session.waitForLoginButtonReady(timeout: 8)
+                if !buttonReady {
+                    attempt.logs.append(PPSRLogEntry(message: "Login button hung in loading state for >8s — requeuing", level: .warning))
+                    await captureDebugScreenshot(session: session, attempt: attempt, step: "button_hung_cycle_\(cycle)", note: "Login button stuck in loading state after previous press", autoResult: .unknown)
+                    attempt.status = .failed
+                    attempt.errorMessage = "Login button hung in loading state — requeuing to bottom"
+                    attempt.completedAt = Date()
+                    return .timeout
+                }
+
                 attempt.logs.append(PPSRLogEntry(message: "Re-filling credentials for cycle \(cycle)", level: .info))
                 let _ = await session.fillUsername(attempt.credential.username)
                 try? await Task.sleep(for: .milliseconds(300))
@@ -172,6 +188,7 @@ class LoginAutomationEngine {
             for submitAttempt in 1...3 {
                 submitResult = await session.clickLoginButton()
                 if submitResult.success {
+                    successfulButtonPresses += 1
                     attempt.logs.append(PPSRLogEntry(message: "Cycle \(cycle) submit: \(submitResult.detail)", level: .success))
                     break
                 }
@@ -289,7 +306,7 @@ class LoginAutomationEngine {
                 if cycle < maxSubmitCycles {
                     attempt.logs.append(PPSRLogEntry(message: "Cycle \(cycle): no account — retrying (\(maxSubmitCycles - cycle) cycles left)", level: .warning))
                     finalOutcome = .noAcc
-                    try? await Task.sleep(for: .seconds(Double(cycle) * 1.5))
+                    try? await Task.sleep(for: .seconds(Double(cycle) * 3.0))
                 } else {
                     finalOutcome = .noAcc
                 }
@@ -297,7 +314,7 @@ class LoginAutomationEngine {
             default:
                 if cycle < maxSubmitCycles {
                     attempt.logs.append(PPSRLogEntry(message: "Cycle \(cycle): uncertain — retrying (\(maxSubmitCycles - cycle) cycles left)", level: .warning))
-                    try? await Task.sleep(for: .seconds(Double(cycle) * 1.5))
+                    try? await Task.sleep(for: .seconds(Double(cycle) * 3.0))
                 }
                 finalOutcome = .unsure
             }
@@ -326,6 +343,16 @@ class LoginAutomationEngine {
             return .noAcc
 
         default:
+            // If the login button was successfully pressed at least 3 times with
+            // no temp-disabled or other clear indication, treat as no account.
+            if successfulButtonPresses >= 3 {
+                attempt.logs.append(PPSRLogEntry(
+                    message: "Treating as NO ACC — button pressed \(successfulButtonPresses)x with no temp-disabled or other indication",
+                    level: .error
+                ))
+                failAttempt(attempt, message: "No account after \(successfulButtonPresses) login attempts — unsure result treated as noAcc")
+                return .noAcc
+            }
             attempt.status = .failed
             attempt.errorMessage = "Unsure after \(maxSubmitCycles) submit cycles — \(eval?.reason ?? "no clear signals"). Auto-requeuing."
             attempt.completedAt = Date()
@@ -402,6 +429,7 @@ class LoginAutomationEngine {
             ("invalid email", 20), ("invalid password", 20),
             ("check your credentials", 25), ("unable to log in", 25),
             ("login error", 20), ("sign in error", 20),
+            ("incorrect", 25),
             ("error", 5),
         ]
         for (term, weight) in weakIncorrectTerms {
