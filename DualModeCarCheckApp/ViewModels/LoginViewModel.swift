@@ -168,7 +168,7 @@ class LoginViewModel {
         }
     }
 
-    var workingCredentials: [LoginCredential] { credentials.filter { $0.status == .success } }
+    var successCredentials: [LoginCredential] { credentials.filter { $0.status == .success } }
     var noAccCredentials: [LoginCredential] { credentials.filter { $0.status == .noAcc } }
     var permDisabledCredentials: [LoginCredential] { credentials.filter { $0.status == .permDisabled } }
     var tempDisabledCredentials: [LoginCredential] { credentials.filter { $0.status == .tempDisabled } }
@@ -501,8 +501,8 @@ class LoginViewModel {
         globalLogs.removeAll()
     }
 
-    func exportWorkingCredentials() -> String {
-        workingCredentials.map(\.exportFormat).joined(separator: "\n")
+    func exportSuccessCredentials() -> String {
+        successCredentials.map(\.exportFormat).joined(separator: "\n")
     }
 
     func clearDebugScreenshots() {

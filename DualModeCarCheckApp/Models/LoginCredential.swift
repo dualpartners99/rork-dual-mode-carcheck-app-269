@@ -25,7 +25,7 @@ class LoginCredential: Identifiable {
     var lastTempDisabledCheck: Date?
 
     var displayStatus: String { status.rawValue }
-    var isWorking: Bool { status == .success }
+    var isSuccess: Bool { status == .success }
     var totalTests: Int { testResults.count }
     var successCount: Int { testResults.filter { $0.success }.count }
     var failureCount: Int { testResults.filter { !$0.success }.count }
