@@ -67,10 +67,10 @@ class TempDisabledCheckService {
 
                     switch outcome {
                     case .success:
-                        cred.status = .working
-                        cred.notes = "Cracked via temp disabled check with password: \(pw)"
-                        onLog("\(cred.username) — SUCCESS with password: \(pw)", .success)
-                        addLog("SUCCESS: \(cred.username) with \(pw)")
+                        cred.status = .success
+                        cred.notes = "Cracked via temp disabled check"
+                        onLog("\(cred.username) — SUCCESS", .success)
+                        addLog("SUCCESS: \(cred.username)")
                         cred.recordResult(success: true, duration: attempt.duration ?? 0, detail: "temp disabled password match")
                         persistCredentials()
                         break
@@ -83,15 +83,15 @@ class TempDisabledCheckService {
                         break
 
                     case .noAcc:
-                        onLog("\(cred.username) — password '\(pw)' rejected (no acc)", .warning)
-                        addLog("NO ACC: \(cred.username) with \(pw)")
+                        onLog("\(cred.username) — password rejected (no acc)", .warning)
+                        addLog("NO ACC: \(cred.username)")
 
                     default:
-                        onLog("\(cred.username) — password '\(pw)' result: \(String(describing: outcome))", .warning)
-                        addLog("UNSURE: \(cred.username) with \(pw)")
+                        onLog("\(cred.username) — result: \(String(describing: outcome))", .warning)
+                        addLog("UNSURE: \(cred.username)")
                     }
 
-                    if cred.status == .working || cred.status == .permDisabled {
+                    if cred.status == .success || cred.status == .permDisabled {
                         break
                     }
 
