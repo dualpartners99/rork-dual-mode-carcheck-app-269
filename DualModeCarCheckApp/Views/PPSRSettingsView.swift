@@ -5,10 +5,6 @@ struct PPSRSettingsView: View {
     @AppStorage("productMode") private var modeRaw: String = ProductMode.ppsr.rawValue
     @State private var showEmailImport: Bool = false
     @State private var emailCSVText: String = ""
-    @State private var cropX: String = ""
-    @State private var cropY: String = ""
-    @State private var cropW: String = ""
-    @State private var cropH: String = ""
     @State private var showCropEditor: Bool = false
 
     var body: some View {
@@ -30,7 +26,9 @@ struct PPSRSettingsView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("Settings")
         .sheet(isPresented: $showEmailImport) { emailImportSheet }
-        .sheet(isPresented: $showCropEditor) { cropEditorSheet }
+        .sheet(isPresented: $showCropEditor, onDismiss: { vm.persistSettings() }) {
+            CropMaskEditorView(image: vm.debugScreenshots.first?.image, cropRect: $vm.screenshotCropRect)
+        }
     }
 
     private var modeSection: some View {
@@ -129,16 +127,12 @@ struct PPSRSettingsView: View {
             }
 
             Button {
-                cropX = vm.screenshotCropRect == .zero ? "" : "\(Int(vm.screenshotCropRect.origin.x))"
-                cropY = vm.screenshotCropRect == .zero ? "" : "\(Int(vm.screenshotCropRect.origin.y))"
-                cropW = vm.screenshotCropRect == .zero ? "" : "\(Int(vm.screenshotCropRect.size.width))"
-                cropH = vm.screenshotCropRect == .zero ? "" : "\(Int(vm.screenshotCropRect.size.height))"
                 showCropEditor = true
             } label: {
                 HStack(spacing: 10) {
                     Image(systemName: "crop").foregroundStyle(.indigo)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Focus Crop Area").font(.body)
+                        Text("Mask Crop Area").font(.body)
                         Text(vm.screenshotCropRect == .zero ? "No crop — showing full page" : "Crop: \(Int(vm.screenshotCropRect.origin.x)),\(Int(vm.screenshotCropRect.origin.y)) \(Int(vm.screenshotCropRect.width))×\(Int(vm.screenshotCropRect.height))")
                             .font(.caption2).foregroundStyle(.secondary)
                     }
@@ -151,13 +145,17 @@ struct PPSRSettingsView: View {
                 Button(role: .destructive) {
                     vm.screenshotCropRect = .zero
                     vm.persistSettings()
-                    vm.log("Cleared screenshot focus crop area")
+                    vm.log("Cleared screenshot mask crop area")
                 } label: {
-                    Label("Clear Focus Crop", systemImage: "xmark.circle")
+                    Label("Clear Mask Crop", systemImage: "xmark.circle")
                 }
             }
         } header: {
             Text("Screenshots")
+        } footer: {
+            Text(vm.screenshotCropRect == .zero
+                 ? "Draw a mask on the last screenshot to crop all future captures to that region."
+                 : "Future screenshots will be cropped to the masked region.")
         }
     }
 
@@ -393,59 +391,6 @@ struct PPSRSettingsView: View {
             Button(role: .destructive) { vm.clearAll() } label: { Label("Clear Session History", systemImage: "trash") }
         } header: {
             Text("About")
-        }
-    }
-
-    private var cropEditorSheet: some View {
-        NavigationStack {
-            VStack(spacing: 20) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Focus Crop Area").font(.headline)
-                    Text("Define a rectangle (in points) to crop from the full-page screenshot.").font(.caption).foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                VStack(spacing: 12) {
-                    HStack(spacing: 12) {
-                        cropField("X", text: $cropX)
-                        cropField("Y", text: $cropY)
-                    }
-                    HStack(spacing: 12) {
-                        cropField("Width", text: $cropW)
-                        cropField("Height", text: $cropH)
-                    }
-                }
-                Spacer()
-            }
-            .padding()
-            .navigationTitle("Focus Crop").navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { showCropEditor = false } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        let x = Double(cropX) ?? 0; let y = Double(cropY) ?? 0
-                        let w = Double(cropW) ?? 0; let h = Double(cropH) ?? 0
-                        if w > 0 && h > 0 {
-                            vm.screenshotCropRect = CGRect(x: x, y: y, width: w, height: h)
-                            vm.log("Set focus crop: \(Int(x)),\(Int(y)) \(Int(w))×\(Int(h))")
-                        } else {
-                            vm.screenshotCropRect = .zero
-                        }
-                        vm.persistSettings()
-                        showCropEditor = false
-                    }
-                }
-            }
-        }
-        .presentationDetents([.medium]).presentationDragIndicator(.visible)
-    }
-
-    private func cropField(_ label: String, text: Binding<String>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label).font(.caption.bold()).foregroundStyle(.secondary)
-            TextField("0", text: text)
-                .keyboardType(.numberPad).font(.system(.body, design: .monospaced))
-                .padding(10).background(Color(.tertiarySystemGroupedBackground)).clipShape(.rect(cornerRadius: 8))
         }
     }
 

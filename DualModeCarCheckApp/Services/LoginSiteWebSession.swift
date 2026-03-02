@@ -604,6 +604,23 @@ class LoginSiteWebSession: NSObject {
         }
     }
 
+    func captureScreenshotWithCrop(cropRect: CGRect?) async -> (full: UIImage?, cropped: UIImage?) {
+        guard let fullImage = await captureScreenshot() else { return (nil, nil) }
+        guard let cropRect, cropRect != .zero else { return (fullImage, nil) }
+        let scale = fullImage.scale
+        let scaledRect = CGRect(
+            x: cropRect.origin.x * scale,
+            y: cropRect.origin.y * scale,
+            width: cropRect.size.width * scale,
+            height: cropRect.size.height * scale
+        )
+        if let cgImage = fullImage.cgImage?.cropping(to: scaledRect) {
+            let cropped = UIImage(cgImage: cgImage, scale: scale, orientation: fullImage.imageOrientation)
+            return (fullImage, cropped)
+        }
+        return (fullImage, nil)
+    }
+
     func dumpPageStructure() async -> String {
         let js = """
         (function() {
