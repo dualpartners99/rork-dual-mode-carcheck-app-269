@@ -19,6 +19,7 @@ class LoginAutomationEngine {
     let maxConcurrency: Int = 8
     var debugMode: Bool = false
     var stealthEnabled: Bool = false
+    var screenshotCropRect: CGRect = .zero
     var onScreenshot: ((PPSRDebugScreenshot) -> Void)?
     var onConnectionFailure: ((String) -> Void)?
     var onUnusualFailure: ((String) -> Void)?
@@ -575,14 +576,20 @@ class LoginAutomationEngine {
     }
 
     private func captureAlwaysScreenshot(session: LoginSiteWebSession, attempt: LoginAttempt, cycle: Int, maxCycles: Int, welcomeTextFound: Bool, redirected: Bool, evaluationReason: String, currentURL: String, autoResult: PPSRDebugScreenshot.AutoDetectedResult) async {
-        guard let img = await session.captureScreenshot() else { return }
-        attempt.responseSnapshot = img
+        let cropRect = screenshotCropRect == .zero ? nil : screenshotCropRect
+        let result = await session.captureScreenshotWithCrop(cropRect: cropRect)
+        guard let fullImage = result.full else { return }
+        attempt.responseSnapshot = fullImage
 
         let compressed: UIImage
-        if let jpegData = img.jpegData(compressionQuality: 0.4), let ci = UIImage(data: jpegData) {
+        if let jpegData = fullImage.jpegData(compressionQuality: 0.4), let ci = UIImage(data: jpegData) {
             compressed = ci
         } else {
-            compressed = img
+            compressed = fullImage
+        }
+        var compressedCrop: UIImage?
+        if let cropped = result.cropped, let jpegData = cropped.jpegData(compressionQuality: 0.4), let ci = UIImage(data: jpegData) {
+            compressedCrop = ci
         }
 
         let screenshot = PPSRDebugScreenshot(
@@ -592,6 +599,7 @@ class LoginAutomationEngine {
             vin: "",
             email: attempt.credential.username,
             image: compressed,
+            croppedImage: compressedCrop,
             note: "Cycle \(cycle)/\(maxCycles) | Welcome!: \(welcomeTextFound ? "YES" : "NO") | Redirect: \(redirected ? "YES" : "NO") | \(evaluationReason) | URL: \(currentURL)",
             autoDetectedResult: autoResult
         )
@@ -600,7 +608,9 @@ class LoginAutomationEngine {
     }
 
     private func captureDebugScreenshot(session: LoginSiteWebSession, attempt: LoginAttempt, step: String, note: String, autoResult: PPSRDebugScreenshot.AutoDetectedResult = .unknown) async {
-        guard let fullImage = await session.captureScreenshot() else { return }
+        let cropRect = screenshotCropRect == .zero ? nil : screenshotCropRect
+        let result = await session.captureScreenshotWithCrop(cropRect: cropRect)
+        guard let fullImage = result.full else { return }
 
         attempt.responseSnapshot = fullImage
 
@@ -610,6 +620,10 @@ class LoginAutomationEngine {
         } else {
             compressed = fullImage
         }
+        var compressedCrop: UIImage?
+        if let cropped = result.cropped, let jpegData = cropped.jpegData(compressionQuality: 0.4), let ci = UIImage(data: jpegData) {
+            compressedCrop = ci
+        }
 
         let screenshot = PPSRDebugScreenshot(
             stepName: step,
@@ -618,6 +632,7 @@ class LoginAutomationEngine {
             vin: "",
             email: attempt.credential.username,
             image: compressed,
+            croppedImage: compressedCrop,
             note: note,
             autoDetectedResult: autoResult
         )

@@ -27,6 +27,7 @@ class LoginViewModel {
     var consecutiveUnusualFailures: Int = 0
     var consecutiveConnectionFailures: Int = 0
     var debugScreenshots: [PPSRDebugScreenshot] = []
+    var screenshotCropRect: CGRect = .zero
     var fingerprintPassRate: String { FingerprintValidationService.shared.formattedPassRate }
     var fingerprintAvgScore: Double { FingerprintValidationService.shared.averageScore }
     var fingerprintHistory: [FingerprintValidationService.FingerprintScore] { FingerprintValidationService.shared.scoreHistory }
@@ -130,6 +131,9 @@ class LoginViewModel {
             }
             stealthEnabled = settings.stealthEnabled
             testTimeout = settings.testTimeout
+            if let rect = settings.screenshotCropRect {
+                screenshotCropRect = rect
+            }
         }
         if !credentials.isEmpty {
             log("Restored \(credentials.count) credentials from storage")
@@ -147,7 +151,8 @@ class LoginViewModel {
             debugMode: debugMode,
             appearanceMode: appearanceMode.rawValue,
             stealthEnabled: stealthEnabled,
-            testTimeout: testTimeout
+            testTimeout: testTimeout,
+            screenshotCropRect: screenshotCropRect
         )
     }
 
@@ -329,6 +334,7 @@ class LoginViewModel {
     private func configureEngine() {
         engine.debugMode = debugMode
         engine.stealthEnabled = stealthEnabled
+        engine.screenshotCropRect = screenshotCropRect
     }
 
     private func handleOutcome(_ outcome: LoginOutcome, credential: LoginCredential, attempt: LoginAttempt) {

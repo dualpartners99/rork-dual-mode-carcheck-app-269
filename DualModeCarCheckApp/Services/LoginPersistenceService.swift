@@ -98,8 +98,8 @@ class LoginPersistenceService {
         }
     }
 
-    func saveSettings(targetSite: String, maxConcurrency: Int, debugMode: Bool, appearanceMode: String, stealthEnabled: Bool, testTimeout: TimeInterval) {
-        let dict: [String: Any] = [
+    func saveSettings(targetSite: String, maxConcurrency: Int, debugMode: Bool, appearanceMode: String, stealthEnabled: Bool, testTimeout: TimeInterval, screenshotCropRect: CGRect = .zero) {
+        var dict: [String: Any] = [
             "targetSite": targetSite,
             "maxConcurrency": maxConcurrency,
             "debugMode": debugMode,
@@ -107,18 +107,32 @@ class LoginPersistenceService {
             "stealthEnabled": stealthEnabled,
             "testTimeout": testTimeout,
         ]
+        if screenshotCropRect != .zero {
+            dict["cropX"] = Double(screenshotCropRect.origin.x)
+            dict["cropY"] = Double(screenshotCropRect.origin.y)
+            dict["cropW"] = Double(screenshotCropRect.size.width)
+            dict["cropH"] = Double(screenshotCropRect.size.height)
+        }
         UserDefaults.standard.set(dict, forKey: settingsKey)
     }
 
-    func loadSettings() -> (targetSite: String, maxConcurrency: Int, debugMode: Bool, appearanceMode: String, stealthEnabled: Bool, testTimeout: TimeInterval)? {
+    func loadSettings() -> (targetSite: String, maxConcurrency: Int, debugMode: Bool, appearanceMode: String, stealthEnabled: Bool, testTimeout: TimeInterval, screenshotCropRect: CGRect?)? {
         guard let dict = UserDefaults.standard.dictionary(forKey: settingsKey) else { return nil }
+        var cropRect: CGRect?
+        if let x = dict["cropX"] as? Double,
+           let y = dict["cropY"] as? Double,
+           let w = dict["cropW"] as? Double,
+           let h = dict["cropH"] as? Double {
+            cropRect = CGRect(x: x, y: y, width: w, height: h)
+        }
         return (
             targetSite: dict["targetSite"] as? String ?? LoginTargetSite.joefortune.rawValue,
             maxConcurrency: dict["maxConcurrency"] as? Int ?? 8,
             debugMode: dict["debugMode"] as? Bool ?? false,
             appearanceMode: dict["appearanceMode"] as? String ?? "Dark",
             stealthEnabled: dict["stealthEnabled"] as? Bool ?? true,
-            testTimeout: dict["testTimeout"] as? TimeInterval ?? 45
+            testTimeout: dict["testTimeout"] as? TimeInterval ?? 45,
+            screenshotCropRect: cropRect
         )
     }
 

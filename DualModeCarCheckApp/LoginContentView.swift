@@ -1481,6 +1481,7 @@ struct LoginSettingsContentView: View {
     @State private var showURLManager: Bool = false
     @State private var isTestingProxies: Bool = false
     @State private var showDebugScreenshots: Bool = false
+    @State private var showCropEditor: Bool = false
 
     private var accentColor: Color {
         vm.isIgnitionMode ? .orange : .green
@@ -1496,6 +1497,7 @@ struct LoginSettingsContentView: View {
             stealthSection
             concurrencySection
             debugSection
+            screenshotSection
             appearanceSection
             iCloudSection
             endpointSection
@@ -1515,6 +1517,9 @@ struct LoginSettingsContentView: View {
                     }
             }
             .presentationDetents([.large])
+        }
+        .sheet(isPresented: $showCropEditor, onDismiss: { vm.persistSettings() }) {
+            CropMaskEditorView(image: vm.debugScreenshots.first?.image, cropRect: $vm.screenshotCropRect)
         }
     }
 
@@ -1854,6 +1859,43 @@ struct LoginSettingsContentView: View {
             if vm.debugMode {
                 Text("Screenshots are always captured for session previews. Debug mode adds them to the Debug tab for review and correction.")
             }
+        }
+    }
+
+    private var screenshotSection: some View {
+        Section {
+            Button {
+                showCropEditor = true
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "crop").foregroundStyle(.indigo)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Mask Crop Area").font(.body)
+                        Text(vm.screenshotCropRect == .zero
+                             ? "No crop — full screenshot"
+                             : "Crop: \(Int(vm.screenshotCropRect.origin.x)),\(Int(vm.screenshotCropRect.origin.y)) \(Int(vm.screenshotCropRect.width))×\(Int(vm.screenshotCropRect.height))")
+                            .font(.caption2).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+                }
+            }
+
+            if vm.screenshotCropRect != .zero {
+                Button(role: .destructive) {
+                    vm.screenshotCropRect = .zero
+                    vm.persistSettings()
+                    vm.log("Cleared screenshot mask crop area")
+                } label: {
+                    Label("Clear Mask Crop", systemImage: "xmark.circle")
+                }
+            }
+        } header: {
+            Text("Screenshots")
+        } footer: {
+            Text(vm.screenshotCropRect == .zero
+                 ? "Draw a mask on the last screenshot to crop all future captures to that region."
+                 : "Future screenshots will be cropped to the masked region.")
         }
     }
 
