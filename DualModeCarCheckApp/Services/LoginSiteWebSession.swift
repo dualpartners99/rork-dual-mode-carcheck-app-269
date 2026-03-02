@@ -514,6 +514,42 @@ class LoginSiteWebSession: NSObject {
         )
     }
 
+    /// Polls the login button's DOM state and returns `true` as soon as it
+    /// leaves the loading/disabled appearance, or `false` if it is still loading
+    /// after `timeout` seconds.  A missing button is treated as "ready" (the
+    /// page has navigated away from the login form).
+    func waitForLoginButtonReady(timeout: TimeInterval = 8) async -> Bool {
+        let js = """
+        (function() {
+            var btns = document.querySelectorAll('button, input[type="submit"], a.btn, [role="button"]');
+            for (var i = 0; i < btns.length; i++) {
+                var text = (btns[i].textContent || btns[i].value || '').toLowerCase().trim();
+                if (text === 'log in' || text === 'login' || text === 'sign in' || text === 'signin' ||
+                    text.indexOf('log in') !== -1 || text.indexOf('login') !== -1 || text.indexOf('sign in') !== -1) {
+                    var btn = btns[i];
+                    if (btn.disabled) return 'LOADING';
+                    var classes = (btn.className || '').toLowerCase();
+                    var ariaDisabled = btn.getAttribute('aria-disabled');
+                    if (classes.indexOf('loading') !== -1 || classes.indexOf('spinner') !== -1 ||
+                        classes.indexOf('pending') !== -1 || classes.indexOf('submitting') !== -1 ||
+                        ariaDisabled === 'true') return 'LOADING';
+                    return 'READY';
+                }
+            }
+            var spinners = document.querySelectorAll('.spinner, .loading, [aria-busy="true"]');
+            if (spinners.length > 0) return 'LOADING';
+            return 'READY';
+        })();
+        """
+        let start = Date()
+        while Date().timeIntervalSince(start) < timeout {
+            let state = await executeJS(js) ?? "READY"
+            if state != "LOADING" { return true }
+            try? await Task.sleep(for: .milliseconds(300))
+        }
+        return false
+    }
+
     func waitForNavigation(timeout: TimeInterval = 20) async -> Bool {
         let start = Date()
         let originalURL = webView?.url?.absoluteString ?? ""

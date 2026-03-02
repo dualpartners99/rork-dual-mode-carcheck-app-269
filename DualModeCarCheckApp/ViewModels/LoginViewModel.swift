@@ -372,7 +372,16 @@ class LoginViewModel {
                 consecutiveConnectionFailures += 1
                 requeueCredentialToBottom(credential)
             default:
+                // For Joe Fortune, only network-type failures (timeout / connection)
+                // are requeued.  An "unsure" result after multiple login attempts
+                // means no clear server response was seen — treat as no account
+                // rather than retrying indefinitely.
                 reason = "unsure result"
+                if !isIgnitionMode {
+                    credential.recordResult(success: false, duration: duration, error: attempt.errorMessage, detail: "no account")
+                    log("\(credential.username) — NO ACC (unsure treated as no account for Joe Fortune)", level: .error)
+                    return
+                }
                 requeueCredentialToBottom(credential)
             }
             log("\(credential.username) — requeued to bottom (\(reason))", level: .warning)
