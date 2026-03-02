@@ -168,7 +168,7 @@ class LoginViewModel {
         }
     }
 
-    var workingCredentials: [LoginCredential] { credentials.filter { $0.status == .working } }
+    var workingCredentials: [LoginCredential] { credentials.filter { $0.status == .success } }
     var noAccCredentials: [LoginCredential] { credentials.filter { $0.status == .noAcc } }
     var permDisabledCredentials: [LoginCredential] { credentials.filter { $0.status == .permDisabled } }
     var tempDisabledCredentials: [LoginCredential] { credentials.filter { $0.status == .tempDisabled } }
@@ -453,9 +453,9 @@ class LoginViewModel {
             isStopping = false
 
             if stoppedEarly {
-                log("Batch stopped: \(batchWorking) working, \(batchDead) dead, \(batchRequeued) requeued", level: .warning)
+                log("Batch stopped: \(batchWorking) success, \(batchDead) dead, \(batchRequeued) requeued", level: .warning)
             } else {
-                log("Batch complete: \(batchWorking) working, \(batchDead) dead, \(batchRequeued) requeued", level: .success)
+                log("Batch complete: \(batchWorking) success, \(batchDead) dead, \(batchRequeued) requeued", level: .success)
             }
 
             showBatchResultPopup = true
@@ -537,7 +537,7 @@ class LoginViewModel {
 
         let isPass = override == .markedPass
         if isPass {
-            cred.status = .working
+            cred.status = .success
             if let lastResult = cred.testResults.first, !lastResult.success {
                 let corrected = LoginTestResult(success: true, duration: lastResult.duration, errorMessage: nil, responseDetail: "User corrected to PASS", timestamp: lastResult.timestamp)
                 cred.testResults.insert(corrected, at: 0)

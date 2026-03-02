@@ -65,8 +65,12 @@ class LoginPersistenceService {
             let cred = LoginCredential(username: username, password: password)
 
             if let id = dict["id"] as? String { cred.overrideId(id) }
-            if let statusRaw = dict["status"] as? String, let status = CredentialStatus(rawValue: statusRaw) {
-                cred.status = status
+            if let statusRaw = dict["status"] as? String {
+                if let status = CredentialStatus(rawValue: statusRaw) {
+                    cred.status = status
+                } else if statusRaw == "Working" {
+                    cred.status = .success
+                }
             }
             if let addedTs = dict["addedAt"] as? TimeInterval {
                 cred.overrideAddedAt(Date(timeIntervalSince1970: addedTs))

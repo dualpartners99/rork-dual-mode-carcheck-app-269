@@ -4,7 +4,7 @@ import Observation
 nonisolated enum CredentialStatus: String, Sendable, Codable, CaseIterable {
     case untested = "Untested"
     case testing = "Testing"
-    case working = "Working"
+    case success = "Success"
     case noAcc = "No Acc"
     case permDisabled = "Perm Disabled"
     case tempDisabled = "Temp Disabled"
@@ -25,7 +25,7 @@ class LoginCredential: Identifiable {
     var lastTempDisabledCheck: Date?
 
     var displayStatus: String { status.rawValue }
-    var isWorking: Bool { status == .working }
+    var isWorking: Bool { status == .success }
     var totalTests: Int { testResults.count }
     var successCount: Int { testResults.filter { $0.success }.count }
     var failureCount: Int { testResults.filter { !$0.success }.count }
@@ -67,7 +67,7 @@ class LoginCredential: Identifiable {
         let result = LoginTestResult(success: success, duration: duration, errorMessage: error, responseDetail: detail)
         testResults.insert(result, at: 0)
         if success {
-            status = .working
+            status = .success
         } else if detail?.lowercased().contains("perm disabled") == true || detail?.lowercased().contains("permanently") == true || detail?.lowercased().contains("blacklist") == true {
             status = .permDisabled
         } else if detail?.lowercased().contains("temp disabled") == true || detail?.lowercased().contains("temporarily") == true {

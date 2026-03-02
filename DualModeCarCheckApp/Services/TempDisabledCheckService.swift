@@ -67,7 +67,7 @@ class TempDisabledCheckService {
 
                     switch outcome {
                     case .success:
-                        cred.status = .working
+                        cred.status = .success
                         cred.notes = "Cracked via temp disabled check with password: \(pw)"
                         onLog("\(cred.username) — SUCCESS with password: \(pw)", .success)
                         addLog("SUCCESS: \(cred.username) with \(pw)")
@@ -91,7 +91,7 @@ class TempDisabledCheckService {
                         addLog("UNSURE: \(cred.username) with \(pw)")
                     }
 
-                    if cred.status == .working || cred.status == .permDisabled {
+                    if cred.status == .success || cred.status == .permDisabled {
                         break
                     }
 

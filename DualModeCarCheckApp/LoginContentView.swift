@@ -27,7 +27,7 @@ struct LoginContentView: View {
                 }
             }
 
-            Tab("Working", systemImage: "checkmark.shield.fill") {
+            Tab("Success", systemImage: "checkmark.shield.fill") {
                 NavigationStack {
                     LoginWorkingListView(vm: vm)
                 }
@@ -77,7 +77,7 @@ struct LoginContentView: View {
             Button("OK") { vm.showBatchResultPopup = false }
         } message: {
             if let result = vm.lastBatchResult {
-                Text("Working: \(result.working) (\(result.alivePercentage)%)\nFailed: \(result.dead)\nRequeued: \(result.requeued)\nTotal: \(result.total)")
+                Text("Success: \(result.working) (\(result.alivePercentage)%)\nFailed: \(result.dead)\nRequeued: \(result.requeued)\nTotal: \(result.total)")
             } else {
                 Text("No results available")
             }
@@ -311,7 +311,7 @@ struct LoginDashboardContentView: View {
     private var statsRow: some View {
         VStack(spacing: 10) {
             HStack(spacing: 10) {
-                LoginMiniStat(value: "\(vm.workingCredentials.count)", label: "Working", color: .green, icon: "checkmark.circle.fill")
+                LoginMiniStat(value: "\(vm.workingCredentials.count)", label: "Success", color: .green, icon: "checkmark.circle.fill")
                 LoginMiniStat(value: "\(vm.untestedCredentials.count)", label: "Queued", color: .secondary, icon: "clock")
                 LoginMiniStat(value: "\(vm.noAccCredentials.count)", label: "No Acc", color: .red, icon: "xmark.circle.fill")
             }
@@ -485,7 +485,7 @@ struct LoginCredentialRow: View {
                     if credential.totalTests > 0 {
                         Text("\(credential.successCount)/\(credential.totalTests) passed")
                             .font(.caption2)
-                            .foregroundStyle(credential.status == .working ? .green : .red)
+                            .foregroundStyle(credential.status == .success ? .green : .red)
                     }
                 }
             }
@@ -506,7 +506,7 @@ struct LoginCredentialRow: View {
 
     private var statusColor: Color {
         switch credential.status {
-        case .working: .green
+        case .success: .green
         case .noAcc: .red
         case .permDisabled: .red.opacity(0.7)
         case .tempDisabled: .orange
@@ -715,7 +715,7 @@ struct LoginCredentialsListView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         LoginFilterChip(title: "All", isSelected: filterStatus == nil) { withAnimation(.snappy) { filterStatus = nil } }
-                        LoginFilterChip(title: "Working", isSelected: filterStatus == .working) { withAnimation(.snappy) { filterStatus = .working } }
+                        LoginFilterChip(title: "Success", isSelected: filterStatus == .success) { withAnimation(.snappy) { filterStatus = .success } }
                         LoginFilterChip(title: "Untested", isSelected: filterStatus == .untested) { withAnimation(.snappy) { filterStatus = .untested } }
                         LoginFilterChip(title: "No Acc", isSelected: filterStatus == .noAcc) { withAnimation(.snappy) { filterStatus = .noAcc } }
                         LoginFilterChip(title: "Perm Dis", isSelected: filterStatus == .permDisabled) { withAnimation(.snappy) { filterStatus = .permDisabled } }
@@ -840,7 +840,7 @@ struct LoginSavedCredRow: View {
 
     private var statusColor: Color {
         switch credential.status {
-        case .working: .green
+        case .success: .green
         case .noAcc: .red
         case .permDisabled: .red.opacity(0.7)
         case .tempDisabled: .orange
@@ -946,7 +946,7 @@ struct LoginCredentialDetailView: View {
 
     private var statusGradientColor: Color {
         switch credential.status {
-        case .working: .green
+        case .success: .green
         case .noAcc: .red
         case .permDisabled: .red.opacity(0.7)
         case .tempDisabled: .orange
@@ -958,7 +958,7 @@ struct LoginCredentialDetailView: View {
 
     private var statusBadgeColor: Color {
         switch credential.status {
-        case .working: .green
+        case .success: .green
         case .noAcc: .red
         case .permDisabled: .red.opacity(0.7)
         case .tempDisabled: .orange
@@ -1059,14 +1059,14 @@ struct LoginWorkingListView: View {
     var body: some View {
         VStack(spacing: 0) {
             if vm.workingCredentials.isEmpty {
-                ContentUnavailableView("No Working Logins", systemImage: "checkmark.shield", description: Text("Credentials that pass login tests will appear here."))
+                ContentUnavailableView("No Successful Logins", systemImage: "checkmark.shield", description: Text("Credentials that pass login tests will appear here."))
             } else {
                 exportBar
                 credentialsList
             }
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Working Logins")
+        .navigationTitle("Successful Logins")
         .toolbar {
             if !vm.workingCredentials.isEmpty {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -1090,7 +1090,7 @@ struct LoginWorkingListView: View {
         }
         .fileExporter(isPresented: $showFileExporter, document: exportDocument, contentType: .plainText, defaultFilename: "working_logins_\(dateStamp()).txt") { result in
             switch result {
-            case .success: vm.log("Exported \(vm.workingCredentials.count) working credentials to file", level: .success)
+            case .success: vm.log("Exported \(vm.workingCredentials.count) successful credentials to file", level: .success)
             case .failure(let error): vm.log("Export failed: \(error.localizedDescription)", level: .error)
             }
         }
@@ -1099,7 +1099,7 @@ struct LoginWorkingListView: View {
     private var exportBar: some View {
         HStack(spacing: 12) {
             Image(systemName: "checkmark.shield.fill").foregroundStyle(.green)
-            Text("\(vm.workingCredentials.count) working logins").font(.subheadline.bold())
+            Text("\(vm.workingCredentials.count) successful logins").font(.subheadline.bold())
             Spacer()
             Button { copyAllCredentials() } label: {
                 Label("Copy All", systemImage: "doc.on.doc")
@@ -1138,7 +1138,7 @@ struct LoginWorkingListView: View {
     private func copyAllCredentials() {
         let text = vm.exportWorkingCredentials()
         UIPasteboard.general.string = text
-        vm.log("Copied \(vm.workingCredentials.count) working credentials to clipboard", level: .success)
+        vm.log("Copied \(vm.workingCredentials.count) successful credentials to clipboard", level: .success)
         withAnimation(.spring(duration: 0.3)) { showCopiedToast = true }
         Task { try? await Task.sleep(for: .seconds(1.5)); withAnimation { showCopiedToast = false } }
     }
